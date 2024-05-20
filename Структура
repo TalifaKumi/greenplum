@@ -3,10 +3,10 @@
    Schema   |           Name           | Type  |  Owner  | Storage |  Size   | Description 
 ------------+--------------------------+-------+---------+---------+---------+-------------
  pg_catalog | gp_configuration_history | table | gpadmin | heap    | 32 kB   | 
- pg_catalog | gp_distribution_policy   | table | gpadmin | heap    | 544 kB  | 
+ pg_catalog | gp_distribution_policy   | table | gpadmin | heap    | 544 kB  | политика разбиения дистрибьюции
  pg_catalog | gp_fastsequence          | table | gpadmin | heap    | 0 bytes | 
  pg_catalog | gp_id                    | table | gpadmin | heap    | 2720 kB | 
- pg_catalog | gp_segment_configuration | table | gpadmin | heap    | 576 kB  | 
+ pg_catalog | gp_segment_configuration | table | gpadmin | heap    | 576 kB  | сегметы конфигурации
  pg_catalog | gp_version_at_initdb     | table | gpadmin | heap    | 2720 kB | 
 
 \dv+ gp_toolkit.*
@@ -20,17 +20,17 @@
  gp_toolkit | __gp_user_data_tables_readable         | view | gpadmin | 0 bytes | 
  gp_toolkit | __gp_user_namespaces                   | view | gpadmin | 0 bytes | 
  gp_toolkit | __gp_user_tables                       | view | gpadmin | 0 bytes | 
- gp_toolkit | gp_bloat_diag                          | view | gpadmin | 0 bytes | 
+ gp_toolkit | gp_bloat_diag                          | view | gpadmin | 0 bytes | раздувание
  gp_toolkit | gp_bloat_expected_pages                | view | gpadmin | 0 bytes | 
- gp_toolkit | gp_locks_on_relation                   | view | gpadmin | 0 bytes | 
+ gp_toolkit | gp_locks_on_relation                   | view | gpadmin | 0 bytes | блокировки
  gp_toolkit | gp_locks_on_resqueue                   | view | gpadmin | 0 bytes | 
- gp_toolkit | gp_log_command_timings                 | view | gpadmin | 0 bytes | 
+ gp_toolkit | gp_log_command_timings                 | view | gpadmin | 0 bytes | логирование
  gp_toolkit | gp_log_database                        | view | gpadmin | 0 bytes | 
  gp_toolkit | gp_log_master_concise                  | view | gpadmin | 0 bytes | 
  gp_toolkit | gp_log_system                          | view | gpadmin | 0 bytes | 
  gp_toolkit | gp_param_settings_seg_value_diffs      | view | gpadmin | 0 bytes | 
  gp_toolkit | gp_pgdatabase_invalid                  | view | gpadmin | 0 bytes | 
- gp_toolkit | gp_resgroup_config                     | view | gpadmin | 0 bytes | 
+ gp_toolkit | gp_resgroup_config                     | view | gpadmin | 0 bytes | ресурсы
  gp_toolkit | gp_resgroup_status                     | view | gpadmin | 0 bytes | 
  gp_toolkit | gp_resgroup_status_per_host            | view | gpadmin | 0 bytes | 
  gp_toolkit | gp_resgroup_status_per_segment         | view | gpadmin | 0 bytes | 
@@ -41,7 +41,7 @@
  gp_toolkit | gp_resq_role                           | view | gpadmin | 0 bytes | 
  gp_toolkit | gp_resqueue_status                     | view | gpadmin | 0 bytes | 
  gp_toolkit | gp_roles_assigned                      | view | gpadmin | 0 bytes | 
- gp_toolkit | gp_size_of_all_table_indexes           | view | gpadmin | 0 bytes | 
+ gp_toolkit | gp_size_of_all_table_indexes           | view | gpadmin | 0 bytes | размеры
  gp_toolkit | gp_size_of_database                    | view | gpadmin | 0 bytes | 
  gp_toolkit | gp_size_of_index                       | view | gpadmin | 0 bytes | 
  gp_toolkit | gp_size_of_partition_and_indexes_disk  | view | gpadmin | 0 bytes | 
@@ -49,12 +49,12 @@
  gp_toolkit | gp_size_of_table_and_indexes_disk      | view | gpadmin | 0 bytes | 
  gp_toolkit | gp_size_of_table_and_indexes_licensing | view | gpadmin | 0 bytes | 
  gp_toolkit | gp_size_of_table_disk                  | view | gpadmin | 0 bytes | 
- gp_toolkit | gp_size_of_table_uncompressed          | view | gpadmin | 0 bytes | 
- gp_toolkit | gp_skew_coefficients                   | view | gpadmin | 0 bytes | 
+ gp_toolkit | gp_size_of_table_uncompressed          | view | gpadmin | 0 bytes | размеры без сжатия
+ gp_toolkit | gp_skew_coefficients                   | view | gpadmin | 0 bytes |   коэффициент дисбаланса
  gp_toolkit | gp_skew_idle_fractions                 | view | gpadmin | 0 bytes | 
  gp_toolkit | gp_stats_missing                       | view | gpadmin | 0 bytes | 
  gp_toolkit | gp_table_indexes                       | view | gpadmin | 0 bytes | 
- gp_toolkit | gp_workfile_entries                    | view | gpadmin | 0 bytes | 
+ gp_toolkit | gp_workfile_entries                    | view | gpadmin | 0 bytes | рабочие файлы
  gp_toolkit | gp_workfile_mgr_used_diskspace         | view | gpadmin | 0 bytes | 
  gp_toolkit | gp_workfile_usage_per_query            | view | gpadmin | 0 bytes | 
  gp_toolkit | gp_workfile_usage_per_segment          | view | gpadmin | 0 bytes | 
