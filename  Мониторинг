@@ -1,0 +1,28 @@
+=====Для проверки оставшегося свободного места (в килобайтах) в файловых системах узла сегмента можно использовать внешнюю таблицу gp_disk_free в административной схеме данных gp_toolkit, сделав следующий запрос:
+
+SELECT * FROM gp_toolkit.gp_disk_free 
+   ORDER BY dfsegment;
+
+======представление gp_size_of_database содержит общий размер базы данных (в байтах):
+
+SELECT * FROM gp_toolkit.gp_size_of_database 
+   ORDER BY sodddatname;
+
+=====
+проверить размер таблицы по имени, надо найти имя отношения (relname) в таблице pg_class, например:
+
+SELECT relname AS name, sotdsize AS size, sotdtoastsize 
+   AS toast, sotdadditionalsize AS other 
+   FROM gp_toolkit.gp_size_of_table_disk as sotd, pg_class 
+   WHERE sotd.sotdoid=pg_class.oid ORDER BY relname;
+
+Увидеть общий размер всех индексов в таблице, используйте представление gp_size_of_all_table_indexes, 
+а размер определенного индекса — представление gp_size_of_index. Представления размера индекса перечисляют таблицы и индексы по идентификатору объекта (а не по имени). 
+Чтобы проверить размер индекса по имени, надо найти имя отношения (relname) в таблице pg_class, например:
+
+SELECT soisize, relname as indexname
+   FROM pg_class, gp_toolkit.gp_size_of_index
+   WHERE pg_class.oid=gp_size_of_index.soioid 
+   AND pg_class.relkind='i';
+
+=========  
