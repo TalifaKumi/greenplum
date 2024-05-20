@@ -1,0 +1,2 @@
+ select gp_segment_id,client_addr,client_port ,sent_location,write_location,flush_location, replay_location,sync_error from gp_stat_replication order by gp_segment_id;
+
