@@ -1,0 +1,7 @@
+====================================. как размазано
+select * from gp_toolkit.gp_skew_coefficients where skccoeff <> 0 and  skcnamespace  <> 'meta';
+ select * from gp_toolkit.gp_skew_idle_fractions;
+
+select * from gp_toolkit.gp_skew_idle_fractions where CEIL(siffraction)=1 and  sifnamespace <> 'meta' order by siffraction;
+
+alter table src_edb2c_analytics_0.ev_posthog_event_test_type set with (reorganize=true) distributed by (team_id);
