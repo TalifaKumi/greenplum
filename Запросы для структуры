@@ -1,0 +1,38 @@
+create view gp_toolkit.vw_gp_distribution_policy AS
+SELECT
+	pgn.nspname AS schemaname,
+	pgc.relname AS tablename,
+	pga.attname AS distributionkey, 
+    CASE WHEN distrokey.policytype ='p' THEN 'Partitioned policy' 
+         WHEN distrokey.policytype ='r' THEN 'Replicated policy' 
+    ELSE '' 
+	END distributionpolicy,
+	distrokey.numsegments,
+	op.opcname
+FROM
+	(
+	SELECT
+		gdp.localoid,
+		UNNEST(gdp.distkey) AS keys,
+		policytype,
+		numsegments,
+		UNNEST(distclass) AS class
+	FROM
+		gp_distribution_policy gdp
+	ORDER BY
+		gdp.localoid) AS distrokey
+INNER JOIN pg_class AS pgc
+ON
+	distrokey.localoid = pgc.oid
+INNER JOIN pg_namespace pgn
+ON
+	pgc.relnamespace = pgn.oid
+LEFT JOIN pg_attribute pga
+ON
+	distrokey.keys = pga.attnum
+	AND distrokey.localoid = pga.attrelid
+LEFT JOIN pg_opclass op ON op.oid = distrokey.class
+ORDER BY
+	pgn.nspname,
+	pgc.relname;
+select * from gp_toolkit.vw_gp_distribution_policy;
