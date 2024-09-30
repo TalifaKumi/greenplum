@@ -1,0 +1,29 @@
+В этом посте я делюсь несколькими скриптами для проверки размера базы данных, схемы и таблицы сервера Greenplum.
+
+Здесь я выполняю это упражнение, используя представления схемы gp_toolkit в Greenplum.
+
+Check the size of database in MB, GB and TB:
+
+SELECT sodddatname, (sodddatsize/1048576) AS Sizein_MB
+FROM gp_toolkit.gp_size_of_database;
+ 
+SELECT sodddatname, (sodddatsize/1073741824) AS Sizein_GB
+FROM gp_toolkit.gp_size_of_database;
+ 
+SELECT sodddatname, (sodddatsize/1073741824)/1024 AS Sizein_TB
+FROM gp_toolkit.gp_size_of_database;
+Checkt the size of database in MB, GB and TB:
+
+==================== Checkt the size of database in MB, GB and TB:
+SELECT sosdnsp, (sosdschematablesize/1048576) AS Sizein_MB
+FROM gp_toolkit.gp_size_of_schema_disk;
+ 
+SELECT sosdnsp, (sosdschematablesize/1073741824) AS Sizein_GB
+FROM gp_toolkit.gp_size_of_schema_disk;
+ 
+SELECT sosdnsp, (sosdschematablesize/1073741824)/1024 AS Sizein_TB
+FROM gp_toolkit.gp_size_of_schema_disk;
+Check the size of any Table or Index:
+
+=================== Check the size of any Table or Index:
+SELECT pg_size_pretty(pg_total_relation_size('schema_name.table_name'));
