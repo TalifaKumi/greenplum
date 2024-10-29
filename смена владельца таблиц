@@ -1,0 +1,5 @@
+select * from pg_tables where schemaname not in ('pg_catalog', 'information_schema','gp_toolkit' ) and tableowner <> 'dwh_devops';
+
+select * from pg_tables where schemaname like ('meta%' ) and tableowner <> 'dwh_devops';
+
+select 'ALTER TABLE '||schemaname||'.'||tablename ||' OWNER TO dwh_devops;' from pg_tables where schemaname like ('meta%' ) and tableowner <> 'dwh_devops';
