@@ -1,0 +1,238 @@
+WITH gr AS 
+(SELECT rug.grantor,
+        rug.grantee,
+        rug.object_schema table_schema,
+        rug.privilege_type,
+        rug.is_grantable
+    FROM information_schema.role_usage_grants rug
+    WHERE rug.object_schema NOT IN ( 'pg_catalog', 'information_schema' )
+        AND grantor <> grantee
+UNION
+SELECT rtg.grantor,
+        rtg.grantee,
+        rtg.table_schema table_schema,
+        rtg.privilege_type,
+        rtg.is_grantable
+    FROM information_schema.role_table_grants rtg
+    LEFT JOIN information_schema.tables tab
+        ON ( tab.table_catalog = rtg.table_catalog
+            AND tab.table_schema = rtg.table_schema
+            AND tab.table_name = rtg.table_name )
+    WHERE rtg.table_schema NOT IN ( 'pg_catalog', 'information_schema' )
+        AND grantor <> grantee
+UNION
+SELECT rrg.grantor,
+        rrg.grantee,
+        rrg.routine_schema table_schema,
+        rrg.privilege_type,
+        rrg.is_grantable
+    FROM information_schema.role_routine_grants rrg
+    LEFT JOIN information_schema.routines fcn
+        ON ( fcn.routine_catalog = rrg.routine_catalog
+            AND fcn.routine_schema = rrg.routine_schema
+            AND fcn.routine_name = rrg.routine_name )
+    WHERE rrg.specific_schema NOT IN ( 'pg_catalog', 'information_schema' )
+        AND grantor <> grantee
+UNION
+SELECT rug.grantor,
+        rug.grantee,
+        rug.udt_schema table_schema,
+        rug.privilege_type,
+        rug.is_grantable
+    FROM information_schema.role_udt_grants rug
+    WHERE rug.udt_schema NOT IN ( 'pg_catalog', 'information_schema' )
+        AND substr ( rug.udt_schema, 1, 3 ) <> 'pg_'
+        AND grantor <> grantee )
+SELECT grantor,  table_schema, array_to_string(array_agg(distinct grantee::text),',') grantee, array_to_string(array_agg(distinct privilege_type::text),',') privilege_type, 'Все таблицы' table_name, is_grantable
+FROM gr
+group by grantor, table_schema, table_name, is_grantable
+order by  grantor, table_schema;
+
+
+
+
+
+select
+grantee granted_role,
+ table_schema
+, array_to_string(array_agg(distinct privilege_type::text),',') privilege_type
+, array_to_string(array_agg(distinct grantor::text),',') grantor
+, 'Все таблицы' table_name
+, is_grantable
+from (SELECT table_privileges.grantor,
+    table_privileges.grantee,
+    table_privileges.table_schema,
+    table_privileges.table_name,
+    table_privileges.privilege_type,
+    table_privileges.is_grantable
+   FROM ( SELECT u_grantor.rolname::information_schema.sql_identifier AS grantor,
+    grantee.rolname::information_schema.sql_identifier AS grantee,
+    nc.nspname::information_schema.sql_identifier AS table_schema,
+    c.relname::information_schema.sql_identifier AS table_name,
+    c.prtype::information_schema.character_data AS privilege_type,
+        CASE
+            WHEN pg_has_role(grantee.oid, c.relowner, 'USAGE'::text) OR c.grantable THEN 'YES'::text
+            ELSE 'NO'::text
+        END::information_schema.yes_or_no AS is_grantable,
+        CASE
+            WHEN c.prtype = 'SELECT'::text THEN 'YES'::text
+            ELSE 'NO'::text
+        END::information_schema.yes_or_no AS with_hierarchy
+   FROM ( SELECT pg_class.oid,
+            pg_class.relname,
+            pg_class.relnamespace,
+            pg_class.relkind,
+            pg_class.relowner,
+            (aclexplode(COALESCE(pg_class.relacl, acldefault('r'::"char", pg_class.relowner)))).grantor AS grantor,
+            (aclexplode(COALESCE(pg_class.relacl, acldefault('r'::"char", pg_class.relowner)))).grantee AS grantee,
+            (aclexplode(COALESCE(pg_class.relacl, acldefault('r'::"char", pg_class.relowner)))).privilege_type AS privilege_type,
+            (aclexplode(COALESCE(pg_class.relacl, acldefault('r'::"char", pg_class.relowner)))).is_grantable AS is_grantable
+           FROM pg_class) c(oid, relname, relnamespace, relkind, relowner, grantor, grantee, prtype, grantable),
+    pg_namespace nc,
+    pg_roles u_grantor,
+    ( SELECT pg_roles.oid,
+            pg_roles.rolname
+           FROM pg_roles
+        UNION ALL
+         SELECT 0::oid AS oid,
+            'PUBLIC'::name) grantee(oid, rolname)
+  WHERE c.relnamespace = nc.oid AND (c.relkind = ANY (ARRAY['r'::"char", 'v'::"char", 'f'::"char"])) AND c.grantee = grantee.oid AND c.grantor = u_grantor.oid AND (c.prtype = ANY (ARRAY['INSERT'::text, 'SELECT'::text, 'UPDATE'::text, 'DELETE'::text, 'TRUNCATE'::text, 'REFERENCES'::text, 'TRIGGER'::text])))table_privileges
+)role_table_grants
+where table_schema not in (VALUES ( 'public'), ( 'pg_catalog'),('information_schema'),('gp_toolkit') )
+group by grantee
+, table_schema
+--, table_name
+,is_grantable;
+
+
+
+
+
+
+
+
+
+SELECT distinct grantor,  table_schema, array_to_string(array_agg(distinct grantee::text),',') grantee, array_to_string(array_agg(distinct privilege_type::text),',') privilege_type, 'Все таблицы' table_name, is_grantable
+  FROM information_schema.role_table_grants
+where grantee='dwh_etl' or grantor='dwh_etl'
+group by  grantor, table_schema, table_name, is_grantable
+order by   grantor, table_schema;
+
+ SELECT distinct grantee
+  FROM information_schema.role_table_grants
+where  grantor != grantee
+group by grantee, table_schema, table_name, is_grantable
+order by  grantee, table_schema;
+
+
+
+
+SELECT pg_user.usename, array_to_string(array_agg(distinct pg_roles.rolname::text),',') 
+FROM pg_user JOIN pg_auth_members ON pg_user.usesysid = pg_auth_members.member 
+JOIN pg_roles ON pg_roles.oid = pg_auth_members.roleid group by pg_user.usename;
+
+SELECT pg_user.usename, array_to_string(array_agg(distinct pg_roles.rolname::text),',') 
+FROM pg_user JOIN pg_auth_members ON pg_user.usesysid = pg_auth_members.member 
+JOIN pg_roles ON pg_roles.oid = pg_auth_members.roleid group by pg_user.usename;
+
+
+
+select
+   t.rarolename as RoleName, t.ramembername as RoleMember, array_to_string(array_agg(distinct t.ramembername::text),',') 
+from pg_roles pr,
+(	select gra.rarolename, gra.ramembername
+	from pg_roles spr,
+	gp_toolkit.gp_roles_assigned gra
+	where  gra.rarolename = spr.rolname
+	and  spr.rolcanlogin = 'f'
+) as t
+where pr.rolcanlogin =  'f'
+	and pr.rolname = t.rarolename
+group by t.rarolename, t.ramembername
+order by t.rarolename, t.ramembername;
+
+
+select
+   t.rarolename as RoleName, array_to_string(array_agg(distinct t.ramembername::text),',')  as RoleMember
+from pg_roles pr,
+(	select gra.rarolename, gra.ramembername
+	from pg_roles spr,
+	gp_toolkit.gp_roles_assigned gra
+	where  gra.rarolename = spr.rolname
+	and  spr.rolcanlogin = 'f'
+) as t
+where pr.rolcanlogin =  'f'
+	and pr.rolname = t.rarolename
+group by t.rarolename 
+order by t.rarolename;
+
+select
+   t.ramembername as RoleName, array_to_string(array_agg(distinct t.rarolename::text),',')  as RoleMember
+from pg_roles pr,
+(	select gra.rarolename, gra.ramembername
+	from pg_roles spr,
+	gp_toolkit.gp_roles_assigned gra
+	where  gra.rarolename = spr.rolname
+	and  spr.rolcanlogin = 'f'
+) as t
+where pr.rolcanlogin =  'f'
+	and pr.rolname = t.rarolename
+group by t.ramembername 
+order by t.ramembername;
+
+
+
+
+select
+grantee granted_role,
+ table_schema
+, array_to_string(array_agg(distinct privilege_type::text),',')
+, 'Все таблицы' table_name
+, is_grantable
+, array_to_string(array_agg(distinct grantee::text),',')
+from (SELECT table_privileges.grantor,
+    table_privileges.grantee,
+    table_privileges.table_schema,
+    table_privileges.table_name,
+    table_privileges.privilege_type,
+    table_privileges.is_grantable
+   FROM ( SELECT u_grantor.rolname::information_schema.sql_identifier AS grantor,
+    grantee.rolname::information_schema.sql_identifier AS grantee,
+    nc.nspname::information_schema.sql_identifier AS table_schema,
+    c.relname::information_schema.sql_identifier AS table_name,
+    c.prtype::information_schema.character_data AS privilege_type,
+        CASE
+            WHEN pg_has_role(grantee.oid, c.relowner, 'USAGE'::text) OR c.grantable THEN 'YES'::text
+            ELSE 'NO'::text
+        END::information_schema.yes_or_no AS is_grantable,
+        CASE
+            WHEN c.prtype = 'SELECT'::text THEN 'YES'::text
+            ELSE 'NO'::text
+        END::information_schema.yes_or_no AS with_hierarchy
+   FROM ( SELECT pg_class.oid,
+            pg_class.relname,
+            pg_class.relnamespace,
+            pg_class.relkind,
+            pg_class.relowner,
+            (aclexplode(COALESCE(pg_class.relacl, acldefault('r'::"char", pg_class.relowner)))).grantor AS grantor,
+            (aclexplode(COALESCE(pg_class.relacl, acldefault('r'::"char", pg_class.relowner)))).grantee AS grantee,
+            (aclexplode(COALESCE(pg_class.relacl, acldefault('r'::"char", pg_class.relowner)))).privilege_type AS privilege_type,
+            (aclexplode(COALESCE(pg_class.relacl, acldefault('r'::"char", pg_class.relowner)))).is_grantable AS is_grantable
+           FROM pg_class) c(oid, relname, relnamespace, relkind, relowner, grantor, grantee, prtype, grantable),
+    pg_namespace nc,
+    pg_roles u_grantor,
+    ( SELECT pg_roles.oid,
+            pg_roles.rolname
+           FROM pg_roles
+        UNION ALL
+         SELECT 0::oid AS oid,
+            'PUBLIC'::name) grantee(oid, rolname)
+  WHERE c.relnamespace = nc.oid AND (c.relkind = ANY (ARRAY['r'::"char", 'v'::"char", 'f'::"char"])) AND c.grantee = grantee.oid AND c.grantor = u_grantor.oid AND (c.prtype = ANY (ARRAY['INSERT'::text, 'SELECT'::text, 'UPDATE'::text, 'DELETE'::text, 'TRUNCATE'::text, 'REFERENCES'::text, 'TRIGGER'::text])))table_privileges
+)role_table_grants
+where table_schema not in (VALUES ( 'public'), ( 'pg_catalog'),('information_schema'),('gp_toolkit') )
+group by grantee
+, table_schema
+,is_grantable;
+
+
+
