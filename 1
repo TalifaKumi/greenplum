@@ -1,0 +1,55 @@
+WITH gr AS 
+(SELECT rug.grantee,
+        rug.object_schema table_schema,
+        rug.privilege_type,
+        rug.is_grantable
+    FROM information_schema.role_usage_grants rug
+    WHERE rug.object_schema NOT IN ( 'pg_catalog', 'information_schema' )
+        AND grantor <> grantee
+UNION
+SELECT rtg.grantee,
+        rtg.table_schema table_schema,
+        rtg.privilege_type,
+        rtg.is_grantable
+    FROM information_schema.role_table_grants rtg
+    LEFT JOIN information_schema.tables tab
+        ON ( tab.table_catalog = rtg.table_catalog
+            AND tab.table_schema = rtg.table_schema
+            AND tab.table_name = rtg.table_name )
+    WHERE rtg.table_schema NOT IN ( 'pg_catalog', 'information_schema' )
+        AND grantor <> grantee
+UNION
+SELECT rrg.grantee,
+        rrg.routine_schema table_schema,
+        rrg.privilege_type,
+        rrg.is_grantable
+    FROM information_schema.role_routine_grants rrg
+    LEFT JOIN information_schema.routines fcn
+        ON ( fcn.routine_catalog = rrg.routine_catalog
+            AND fcn.routine_schema = rrg.routine_schema
+            AND fcn.routine_name = rrg.routine_name )
+    WHERE rrg.specific_schema NOT IN ( 'pg_catalog', 'information_schema' )
+        AND grantor <> grantee
+UNION
+SELECT rug.grantee,
+        rug.udt_schema table_schema,
+        rug.privilege_type,
+        rug.is_grantable
+    FROM information_schema.role_udt_grants rug
+    WHERE rug.udt_schema NOT IN ( 'pg_catalog', 'information_schema' )
+        AND substr ( rug.udt_schema, 1, 3 ) <> 'pg_'
+        AND grantor <> grantee ),
+grr as
+(SELECT pgr1.rolname rolname, array_to_string(array_agg(distinct pgr2.rolname::text),',') rolnamegr
+FROM pg_roles pgr1
+LEFT JOIN pg_auth_members ON pgr1.oid = pg_auth_members.member 
+LEFT JOIN pg_roles pgr2 ON pgr2.oid = pg_auth_members.roleid 
+group by pgr1.rolname
+)
+SELECT grr.rolname,  gr.table_schema, grr.rolnamegr rolnamegr, array_to_string(array_agg(distinct privilege_type::text),',') privilege_type, 'Все таблицы' table_name, is_grantable
+FROM grr
+left join gr on grr.rolname = gr.grantee
+--where grr.rolname = 'v.machinskiy' 
+--where grr.rolname = 'postgres_exporter' 
+group by rolname, table_schema, table_name, rolnamegr, is_grantable
+order by  grr.rolname, table_schema;
