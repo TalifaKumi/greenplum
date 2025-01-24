@@ -1,0 +1,34 @@
+------------------------Статистика текущих Spill-файлов
+select segid,numfiles, pg_size_pretty(size)  from gp_toolkit.gp_workfile_usage_per_segment order by segid;
+Статистика Skew(неравномерного распределения данных в таблице между сегментами)
+select 'facts' as "Table Name",max(c) as "Max Seg Rows", min(c) as "Min Seg Rows", (max(c)-min(c))*100.0/max(c) as "Percentage Difference Between Max & Min" from (SELECT count(*) c, gp_segment_id from <table> group by 2) as a;
+
+--------------------Статистика размера объектов
+Размер схем
+select * from (
+select sosdnsp as SchemaName,
+
+round(sosdschematablesize/power(1024,3)::numeric,2) as table_size_GB ,
+
+round(sosdschemaidxsize/power(1024,3)::numeric,2) as index_size_GB,
+
+round((sosdschematablesize + sosdschemaidxsize)/power(1024,3)::numeric,2) as schema_size_GB
+
+from gp_toolkit.gp_size_of_schema_disk ) s order by table_size_GB desc,index_size_GB desc;Размер таблиц
+Вариант 1
+select * from (
+select 
+sotaidschemaname,
+sotaidtablename,
+round(sotaidtablesize/power(1024,3)::numeric,2) as table_size_GB ,
+
+round(sotaididxsize/power(1024,3)::numeric,2) as index_size_GB
+
+from gp_toolkit.gp_size_of_table_and_indexes_disk ) s order by table_size_GB desc,index_size_GB desc;
+Вариант 2
+SELECT sotdschemaname, relname AS name, pg_size_pretty(sotdsize) AS size, pg_size_pretty(sotdtoastsize)
+ AS toast, pg_size_pretty(sotdadditionalsize) AS other
+
+FROM gp_toolkit.gp_size_of_table_disk as sotd, pg_class
+
+WHERE sotd.sotdoid=pg_class.oid ORDER BY sotdsize desc;
