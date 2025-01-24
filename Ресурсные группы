@@ -1,0 +1,2 @@
+
+ SELECT * FROM gp_toolkit.gp_resgroup_config;
