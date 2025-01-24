@@ -1,0 +1,21 @@
+
+gpconfig --show <param>
+
+gpconfig -c <param> -v <value> [-m <master_value> |  --masteronly
+
+Пример
+
+gpconfig -c  shared_buffers -v 512MB --masteronly
+
+Запросы
+Расчет параметров
+https://greenplum.org/calculator/
+www.pgconfig.org
+
+https://bigdataschool.ru/blog/os-configuring-for-greenplum-best-practices.html
+https://bigdataschool.ru/blog/greenplum-memory-configuration.html
+
+https://greenplum.org/picking-possible-instance-types-on-cloud/
+
+https://habr.com/ru/companies/arenadata/articles/852830/
+
