@@ -1,0 +1,143 @@
+
+Управление кластером не происходит через сервисы! Только из-под команд ниже и пользователя gpadmin(sudo su gpadmin)
+
+!После перезапуска кластера обязательно требуется проверить PXF. Он представляет из себя отдельный java процесс связанный с GP и завершается при недоступности кластера
+
+gpstop - остановка кластера (советуется выбирать f(ast) режим для завершения запросов)
+
+gpstop -r - перезапуск кластера (советуется выбирать f(ast) режим для завершения запросов)
+
+gpstart - запуск кластера
+
+gpstate -m - статус  mirror
+
+gpstate -p -статус primary
+
+gpstate -s - детальная информация по всем нодам
+
+gpstate -f - статус standby master
+
+gpstate -c - маппинг primary/mirror сегментов
+
+Команды управления PXF
+pxf start|stop|status - общее управление статусом всех сервисов PXF на всех нодах
+
+pxf cluster sync|restart|status - управление синхронизацией настроек серверов(например после добавления или изменения нового)
+
+Пути
+/data1/master/gpseg-1/postgresql.conf - конфиг файл мастера
+
+/data1/master/gpseg-1/pg_log/startup.log - лог запуска
+
+Установка значений для кластера
+gpconfig --show <param>
+
+gpconfig -c <param> -v <value> [-m <master_value> |  --masteronly
+
+Пример
+
+gpconfig -c  shared_buffers -v 512MB --masteronly
+
+Запросы
+Расчет параметров
+https://greenplum.org/calculator/
+www.pgconfig.org
+
+https://bigdataschool.ru/blog/os-configuring-for-greenplum-best-practices.html
+https://bigdataschool.ru/blog/greenplum-memory-configuration.html
+
+https://greenplum.org/picking-possible-instance-types-on-cloud/
+
+https://habr.com/ru/companies/arenadata/articles/852830/
+
+https://habr.com/ru/companies/arenadata/articles/852830/
+
+Текущие активные запросы
+SELECT datname, pid, state, query, age(clock_timestamp(), query_start) AS age 
+FROM pg_stat_activity
+WHERE state <> 'idle' 
+    AND query NOT LIKE '% FROM pg_stat_activity %' 
+ORDER BY age;
+Примерный  расчет числа строк в таблице
+!Расчет  примерный так как для больших таблиц будет запущен долгий seq-скан. Рекомендуется использовать косвенные признаки которые +- точны
+
+Вариант 1
+SELECT c.relname,n.nspname, c.reltuples::bigint AS estimate
+
+FROM pg_class c
+
+JOIN pg_namespace n ON n.oid = c.relnamespace
+
+WHERE c.relname = 'tags_hist';
+Вариант 2
+SELECT reltuples::bigint AS estimate
+
+FROM pg_class
+
+WHERE oid = 'temp.tags_hist'::regclass;
+Вариант 3
+SELECT
+
+schemaname
+
+,relname
+
+,n_live_tup AS EstimatedCount
+
+FROM pg_stat_user_tables
+
+ORDER BY n_live_tup DESC;
+Вариант 4  
+SELECT N.oid,
+
+nspname AS schemaname,
+
+relname,reltuples::bigint
+
+FROM pg_class C
+
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+
+WHERE nspname NOT IN ('pg_catalog', 'information_schema')
+
+AND relkind='r'
+
+AND relname='clients'
+
+ORDER BY reltuples DESC;
+Ресурсные группы
+ SELECT * FROM gp_toolkit.gp_resgroup_config;
+Статистика текущих Spill-файлов
+select segid,numfiles, pg_size_pretty(size)  from gp_toolkit.gp_workfile_usage_per_segment order by segid;
+Статистика Skew(неравномерного распределения данных в таблице между сегментами)
+select 'facts' as "Table Name",max(c) as "Max Seg Rows", min(c) as "Min Seg Rows", (max(c)-min(c))*100.0/max(c) as "Percentage Difference Between Max & Min" from (SELECT count(*) c, gp_segment_id from <table> group by 2) as a;
+
+Статистика размера объектов
+Размер схем
+select * from (
+select sosdnsp as SchemaName,
+
+round(sosdschematablesize/power(1024,3)::numeric,2) as table_size_GB ,
+
+round(sosdschemaidxsize/power(1024,3)::numeric,2) as index_size_GB,
+
+round((sosdschematablesize + sosdschemaidxsize)/power(1024,3)::numeric,2) as schema_size_GB
+
+from gp_toolkit.gp_size_of_schema_disk ) s order by table_size_GB desc,index_size_GB desc;Размер таблиц
+Вариант 1
+select * from (
+select 
+sotaidschemaname,
+sotaidtablename,
+round(sotaidtablesize/power(1024,3)::numeric,2) as table_size_GB ,
+
+round(sotaididxsize/power(1024,3)::numeric,2) as index_size_GB
+
+from gp_toolkit.gp_size_of_table_and_indexes_disk ) s order by table_size_GB desc,index_size_GB desc;
+Вариант 2
+SELECT sotdschemaname, relname AS name, pg_size_pretty(sotdsize) AS size, pg_size_pretty(sotdtoastsize)
+ AS toast, pg_size_pretty(sotdadditionalsize) AS other
+
+FROM gp_toolkit.gp_size_of_table_disk as sotd, pg_class
+
+WHERE sotd.sotdoid=pg_class.oid ORDER BY sotdsize desc;
