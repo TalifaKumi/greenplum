@@ -16,7 +16,7 @@ Checkt the size of database in MB, GB and TB:
 
 ==================== Checkt the size of database in MB, GB and TB:
 SELECT sosdnsp, (sosdschematablesize/1048576) AS Sizein_MB
-FROM gp_toolkit.gp_size_of_schema_disk;
+FROM gp_toolkit.gp_size_of_schema_disk order by sosdschematablesize desc;
  
 SELECT sosdnsp, (sosdschematablesize/1073741824) AS Sizein_GB
 FROM gp_toolkit.gp_size_of_schema_disk;
@@ -27,3 +27,23 @@ Check the size of any Table or Index:
 
 =================== Check the size of any Table or Index:
 SELECT pg_size_pretty(pg_total_relation_size('schema_name.table_name'));
+
+
+=========================
+SELECT nspname || '.' || relname AS "relation",pg_total_relation_size(C.oid),
+       pg_size_pretty(pg_total_relation_size(C.oid)) AS "total_size"
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+LEFT OUTER JOIN pg_inherits I ON (C.relfilenode = I.inhrelid OR C.relfilenode = I.inhparent)
+WHERE nspname NOT IN ('pg_catalog', 'information_schema')
+    AND C.relkind <> 'i'
+    AND nspname !~ '^pg_toast'
+    AND I.inhrelid is null
+UNION ALL
+select nspname || '.' || relname AS "relation", sum(pg_relation_size(inhrelid)),
+       pg_size_pretty(sum(pg_relation_size(inhrelid))) AS "total_size" 
+FROM pg_inherits  I 
+LEFT JOIN pg_class C ON (C.oid = I.inhparent)
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)  
+GROUP BY  nspname,relname
+ORDER BY 2 desc;
